@@ -2,19 +2,30 @@ name: Sync Upstream Repository
 
 on:
   schedule:
-    # 每天 UTC 时间 0:00 自动同步（北京时间 8:00）
     - cron: '0 0 * * *'
-  workflow_dispatch: # 允许手动点击按钮触发同步
+  workflow_dispatch:
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Sync upstream changes
-        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          target_sync_branch: main
-          target_repo_token: ${{ secrets.GITHUB_TOKEN }}
-          upstream_sync_repo: jianchu-in/momo.float.phone
-          upstream_sync_branch: main
-          test_mode: false
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync with upstream
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/jianchu-in/momo.float.phone.git || true
+          git fetch upstream
+          git checkout main
+          cp .github/workflows/sync-upstream.yml /tmp/sync-upstream.yml
+          git merge upstream/main --no-edit -X theirs || true
+          mkdir -p .github/workflows
+          cp /tmp/sync-upstream.yml .github/workflows/sync-upstream.yml
+          git add .github/workflows/sync-upstream.yml
+          git diff --staged --quiet || git commit -m "Auto-sync with upstream (restore workflow)"
+          git push origin main
