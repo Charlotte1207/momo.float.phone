@@ -65,6 +65,11 @@ import {
   saveRegexes,
   saveWorldBooks,
 } from "./settings-storage";
+import {
+  getCharacterWorldGroupId,
+  loadCharacterWorldGroups,
+  moveCharacterToWorld,
+} from "./character-world-storage";
 import type { ApiConfig, BindingSlot, RegexConfig, RegexRule, VoiceApiConfig, WorldBookConfig, WorldBookEntry } from "./settings-types";
 import { createSTTSession } from "./stt-service";
 import { generateImageFromConfiguredApi } from "./image-generation-service";
@@ -1281,6 +1286,52 @@ export function writeCustomAppCharacter(app: InstalledCustomApp, record: Record<
   return { ok: true, created: false, character: next };
 }
 
+export function readCustomAppUserIdentities(): Record<string, unknown> {
+  return {
+    identities: loadUserIdentities().map(identity => ({
+      id: identity.id,
+      name: identity.name,
+      avatarUrl: identity.avatarUrl,
+      bio: identity.bio,
+      gender: identity.gender,
+      age: identity.age,
+      occupation: identity.occupation,
+      customSettings: identity.customSettings,
+    })),
+  };
+}
+
+export function readCustomAppCharacterWorlds(record: Record<string, unknown>): Record<string, unknown> {
+  const characterId = cleanText(record.characterId, 160);
+  if (characterId && !loadCharacters().some(character => character.id === characterId)) {
+    throw new Error("characters.listWorlds 需要有效的 characterId。");
+  }
+  const currentWorldId = characterId ? getCharacterWorldGroupId(characterId) : null;
+  return {
+    currentWorldId,
+    worlds: loadCharacterWorldGroups().map(world => ({
+      id: world.id,
+      name: world.name,
+      description: world.description,
+      memberCount: world.memberIds.length,
+      selected: world.id === currentWorldId,
+    })),
+  };
+}
+
+export function writeCustomAppCharacterWorld(record: Record<string, unknown>): Record<string, unknown> {
+  const characterId = cleanText(record.characterId, 160);
+  const worldId = cleanText(record.worldId, 160);
+  if (!loadCharacters().some(character => character.id === characterId)) {
+    throw new Error("characters.assignWorld 需要有效的 characterId。");
+  }
+  if (!loadCharacterWorldGroups().some(world => world.id === worldId)) {
+    throw new Error("characters.assignWorld 需要有效的 worldId。");
+  }
+  moveCharacterToWorld(characterId, worldId);
+  return { ok: true, characterId, worldId };
+}
+
 function normalizeCustomAppRegexRule(raw: unknown, index: number): RegexRule {
   const record = asRecord(raw);
   const placement = Array.isArray(record.placement)
@@ -1372,6 +1423,12 @@ export function writeCustomAppStoryBinding(record: Record<string, unknown>): Rec
   }
   if (Object.prototype.hasOwnProperty.call(record, "regexIds")) {
     story.regexIds = cleanStringList(record.regexIds, 100, 160).filter(id => regexes.has(id));
+  }
+  if (Object.prototype.hasOwnProperty.call(record, "userIdentityId")) {
+    const userIdentityId = cleanText(record.userIdentityId, 160);
+    story.userIdentityId = loadUserIdentities().some(identity => identity.id === userIdentityId)
+      ? userIdentityId
+      : undefined;
   }
   const nextBinding = { ...current, appOverrides: { ...current.appOverrides, story } };
   const characterBindings = config.characterBindings.some(item => item.characterId === characterId)

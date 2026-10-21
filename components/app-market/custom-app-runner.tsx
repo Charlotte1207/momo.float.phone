@@ -53,10 +53,12 @@ import {
   readCustomAppChatHistory,
   readCustomAppCharacterRelations,
   readCustomAppCharacterState,
+  readCustomAppCharacterWorlds,
   readCustomAppCoreMemory,
   readCustomAppLongTermMemory,
   readCustomAppShortTermMemory,
   readCustomAppUserPersona,
+  readCustomAppUserIdentities,
   readCustomAppUserPreferences,
   readCustomAppUserProfile,
   readCustomAppVoiceProfiles,
@@ -85,6 +87,7 @@ import {
   writeCustomAppCharacter,
   writeCustomAppHistoryMessage,
   writeCustomAppCharacterState,
+  writeCustomAppCharacterWorld,
   writeCustomAppRegex,
   writeCustomAppStoryBinding,
   writeCustomAppWorld,
@@ -381,7 +384,8 @@ html, body { min-height: 100%; }
     user: {
       getProfile: function(payload){ return request('user.getProfile', payload || {}); },
       getPersona: function(payload){ return request('user.getPersona', payload || {}); },
-      getPreferences: function(payload){ return request('user.getPreferences', payload || {}); }
+      getPreferences: function(payload){ return request('user.getPreferences', payload || {}); },
+      listIdentities: function(){ return request('user.listIdentities', {}); }
     },
     network: {
       fetch: function(payload){ return request('network.fetch', payload || {}); }
@@ -470,8 +474,11 @@ html, body { min-height: 100%; }
     characters: {
       list: function(){ return request('characters.list'); },
       get: function(id){ return request('characters.get', { id: id }); },
+      open: function(payload){ return request('characters.open', payload || {}); },
       create: function(payload){ return request('characters.write', Object.assign({}, payload || {}, { operation: 'create' })); },
       update: function(payload){ return request('characters.write', Object.assign({}, payload || {}, { operation: 'update' })); },
+      listWorlds: function(payload){ return request('characters.worlds.read', payload || {}); },
+      assignWorld: function(payload){ return request('characters.worlds.write', payload || {}); },
       readState: function(payload){ return request('characters.state.read', payload || {}); },
       writeState: function(payload){ return request('characters.state.write', payload || {}); },
       readRelations: function(payload){ return request('characters.relations.read', payload || {}); }
@@ -701,6 +708,7 @@ function bridgeActionNeedsKvStorage(action: string): boolean {
     || action === "user.getProfile"
     || action === "user.getPersona"
     || action === "user.getPreferences"
+    || action === "user.listIdentities"
     || action === "chat.sendMessage"
     || action === "chat.history"
     || action === "chat.writeHistory"
@@ -1117,13 +1125,13 @@ export function CustomAppRunner({
         sdk: {
           app: ["getManifest", "getCapabilities", "getLaunchContext", "getAssetUrl", "close"],
           ai: ["generate", "chat", "embed", "classify"],
-          user: ["getProfile", "getPersona", "getPreferences"],
+          user: ["getProfile", "getPersona", "getPreferences", "listIdentities"],
           network: ["fetch"],
           voice: ["readProfiles", "tts", "stt", "record", "stopRecord", "clone", "play", "stopPlayback", "pausePlayback", "resumePlayback"],
           calendar: ["read", "list", "write", "create", "update", "delete", "replaceWeek"],
           world: ["read", "list", "get", "write", "create", "update", "delete", "activate"],
           media: ["pick", "save", "put", "get", "revoke", "delete"],
-          characters: ["list", "get", "create", "update", "readState", "writeState", "readRelations"],
+          characters: ["list", "get", "open", "create", "update", "listWorlds", "assignWorld", "readState", "writeState", "readRelations"],
           regex: ["list", "get", "create", "update", "delete"],
           story: ["listOpeningSets", "saveOpeningSet", "selectOpening", "promoteOpeningArchive", "deleteOpeningArchive", "getBindings", "updateBindings", "open"],
           chat: ["getCurrentSession", "readHistory", "sendMessage", "sendCard", "updateCard", "writeHistory", "requestReply", "openConversation", "setContactState"],
@@ -1665,6 +1673,15 @@ export function CustomAppRunner({
       requirePermission("characters.read");
       return loadCharacters().find(character => character.id === String(record.id ?? "")) ?? null;
     }
+    if (action === "characters.open") {
+      requirePermission("characters.read");
+      const characterId = String(record.characterId ?? "").trim();
+      if (characterId && !loadCharacters().some(character => character.id === characterId)) {
+        throw new Error("characters.open 需要有效的 characterId。");
+      }
+      window.dispatchEvent(new CustomEvent("open-app", { detail: { appId: "characters", characterId } }));
+      return { ok: true, characterId: characterId || undefined };
+    }
     if (action === "characters.write") {
       requirePermission("characters.write");
       return writeCustomAppCharacter(app, record);
@@ -1680,6 +1697,19 @@ export function CustomAppRunner({
     if (action === "characters.relations.read") {
       requirePermission("characters.relations.read");
       return readCustomAppCharacterRelations(record);
+    }
+    if (action === "characters.worlds.read") {
+      requirePermission("characters.read");
+      return readCustomAppCharacterWorlds(record);
+    }
+    if (action === "characters.worlds.write") {
+      requirePermission("characters.write");
+      return writeCustomAppCharacterWorld(record);
+    }
+
+    if (action === "user.listIdentities") {
+      requirePermission("user.persona.read");
+      return readCustomAppUserIdentities();
     }
 
     if (action === "regex.read") {
