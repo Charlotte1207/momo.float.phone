@@ -144,6 +144,7 @@ import { sendBrowserNotification } from "@/lib/browser-notification";
 import type { ChatSharePayload } from "@/lib/chat-share";
 import { completePendingMcpOAuthCallback } from "@/lib/tool-executor";
 import { LayoutGrid, LoaderCircle, RefreshCw } from "lucide-react";
+import { loadChatScope, sessionMatchesChatScope } from "@/lib/chat-scope-storage";
 
 const EMOJI_FONTS = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla"';
 
@@ -2473,8 +2474,13 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:#121110;color:rgb
       if (!detail || detail.replayed) return;
 
       const sessions = loadChatSessions();
+      const scope = loadChatScope();
       const sessionId = detail.sessionId
-        || sessions.find(session => !session.isGroup && session.contactId === detail.characterId)?.id
+        || sessions.find(session => (
+          !session.isGroup
+          && session.contactId === detail.characterId
+          && sessionMatchesChatScope(session, scope)
+        ))?.id
         || "";
       if (!sessionId) return;
 
