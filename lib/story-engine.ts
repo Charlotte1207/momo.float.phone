@@ -96,8 +96,8 @@ function buildStorySettingsPrompt(
     // 新建方案 prompt 留空时不注入（避免出现“文风方案【xxx】：”这样的空行）
     effective.extraPrompt?.trim() ? `额外要求：${effective.extraPrompt.trim()}` : "",
     ...(effective.customPromptEntries || []).filter((item) => item.enabled && item.content.trim()).map((item) => `专属条目【${item.name || "未命名"}】：${item.content.trim()}`),
-    status?.prompt?.trim() || "",
-    theater?.prompt?.trim() || "",
+    effective.statusGenerationEnabled !== false ? (status?.prompt?.trim() || "") : "",
+    effective.theaterGenerationEnabled !== false ? (theater?.prompt?.trim() || "") : "",
   ].filter(Boolean).join("\n");
 }
 
