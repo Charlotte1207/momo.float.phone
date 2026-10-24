@@ -166,6 +166,20 @@
   white-space: nowrap;
 }
 
+/* 世界书目录只负责收纳，不参与绑定或提示词加载。 */
+.worldbook-add-folder { margin-left: auto; min-height: 34px; padding: 0 11px; border: 1px solid var(--c-card-border, rgba(20,30,45,.08)); border-radius: 999px; display: inline-flex; align-items: center; gap: 5px; color: var(--c-text, #334155); background: var(--c-card, #fff); font-size: calc(10px*var(--app-text-scale,1)); font-weight: 700; }
+.worldbook-folder-list { display: grid; gap: 12px; }
+.worldbook-folder-section { padding: 10px; border: 1px solid var(--c-card-border, rgba(20,30,45,.07)); border-radius: 16px; background: color-mix(in srgb, var(--c-card, #fff) 78%, transparent); }
+.worldbook-folder-section > header { min-height: 34px; display: flex; align-items: center; gap: 4px; }
+.worldbook-folder-section > header > button { width: 30px; height: 30px; flex: none; border: 0; border-radius: 9px; display: grid; place-items: center; color: var(--c-icon, #788394); background: transparent; }
+.worldbook-folder-section > header > button:last-child { color: #bd5555; }
+.worldbook-folder-toggle { width: auto !important; min-width: 0; flex: 1 !important; grid-template-columns: auto auto minmax(0,1fr) auto !important; justify-content: start; gap: 7px; text-align: left; }
+.worldbook-folder-toggle strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--c-text-title, #202938); font-size: calc(12px*var(--app-text-scale,1)); }
+.worldbook-folder-toggle span { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; display: grid; place-items: center; color: var(--c-icon, #788394); background: var(--c-input, #eef1f4); font-size: calc(9px*var(--app-text-scale,1)); }
+.worldbook-folder-section > .grid { margin-top: 8px; }
+.worldbook-folder-section > p { margin: 8px 4px 3px; color: var(--c-icon, #8791a0); font-size: calc(10px*var(--app-text-scale,1)); }
+.worldbook-folder-select { width: 100%; min-width: 0; height: 27px; padding: 0 6px; border: 1px solid var(--c-card-border, rgba(20,30,45,.08)); border-radius: 8px; outline: 0; color: var(--c-text, #475569); background: var(--c-input, rgba(245,247,250,.9)); font-size: calc(9px*var(--app-text-scale,1)); }
+
 .story-row[data-selected="1"] .story-bubble {
   outline: 2px solid color-mix(in srgb, var(--c-story-accent, #ad8241) 70%, transparent);
   outline-offset: 2px;

@@ -386,6 +386,10 @@ export type StoryCharacterSettings = {
   extraPrompt?: string;
   customPromptEntries?: StoryPromptEntry[];
   enabledPresetPromptIds?: string[];
+  /** 是否在基础绑定预设后追加其他预设的提示条目。 */
+  presetStitchingEnabled?: boolean;
+  /** 附加预设 ID，数组顺序就是缝合顺序；基础绑定预设不写入这里。 */
+  stitchedPresetIds?: string[];
   minChars?: number;
   maxChars?: number;
   userPerspective?: "second" | "third" | "username";

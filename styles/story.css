@@ -1026,6 +1026,28 @@
         .story-generation-length label { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
         .story-generation-length label > span { font-size: calc(8.5px*var(--app-text-scale,1)); color: var(--c-story-sub,#94a3b8); }
         .story-generation-length .story-char-limit-hint { display: none; }
+        .story-preset-stitching { display: grid; gap: 10px; }
+        .story-preset-base { min-height: 42px; padding: 9px 11px; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--c-story-sub,#64748b); background: rgba(148,163,184,.065); font-size: calc(10px*var(--app-text-scale,1)); }
+        .story-preset-base strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--c-story-heading,#334155); font-size: calc(11px*var(--app-text-scale,1)); }
+        .story-preset-choice-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+        .story-preset-choice-list > label { min-width: 0; padding: 9px; border-radius: 11px; display: flex; align-items: center; gap: 8px; background: rgba(148,163,184,.06); cursor: pointer; }
+        .story-preset-choice-list input { flex: none; accent-color: var(--c-story-accent,#ad8241); }
+        .story-preset-choice-list label > span { min-width: 0; display: grid; gap: 2px; }
+        .story-preset-choice-list strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--c-story-heading,#334155); font-size: calc(10.5px*var(--app-text-scale,1)); }
+        .story-preset-choice-list small { color: var(--c-story-sub,#94a3b8); font-size: calc(8.5px*var(--app-text-scale,1)); }
+        .story-preset-order-list { display: grid; gap: 7px; }
+        .story-preset-order-list > div { min-height: 40px; padding: 6px 8px 6px 10px; border: 1px solid rgba(100,116,139,.08); border-radius: 11px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .story-preset-order-list > div > span { min-width: 0; display: flex; align-items: center; gap: 7px; }
+        .story-preset-order-list > div b { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; color: var(--c-story-accent,#ad8241); background: color-mix(in srgb,var(--c-story-accent,#ad8241) 12%,transparent); font-size: calc(9px*var(--app-text-scale,1)); }
+        .story-preset-order-list > div strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--c-story-heading,#334155); font-size: calc(10.5px*var(--app-text-scale,1)); }
+        .story-preset-order-list button { width: 30px; height: 30px; border: 0; border-radius: 9px; display: grid; place-items: center; color: var(--c-story-text,#475569); background: rgba(148,163,184,.1); }
+        .story-preset-order-list button:disabled { opacity: .3; }
+        .story-preset-preview { margin-top: 2px; border: 1px solid rgba(100,116,139,.09); border-radius: 12px; overflow: hidden; }
+        .story-preset-preview summary { padding: 10px 11px; cursor: pointer; color: var(--c-story-accent,#9b722f); font-size: calc(10.5px*var(--app-text-scale,1)); font-weight: 700; }
+        .story-preset-preview section { padding: 10px 11px; border-top: 1px solid rgba(100,116,139,.07); }
+        .story-preset-preview section > strong { color: var(--c-story-heading,#334155); font-size: calc(10.5px*var(--app-text-scale,1)); }
+        .story-preset-preview p { margin: 8px 0 0; display: grid; gap: 3px; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--c-story-text,#475569); font-size: calc(9.5px*var(--app-text-scale,1)); line-height: 1.55; }
+        .story-preset-preview p b { color: var(--c-story-sub,#64748b); }
         .story-auto-requirements-preview { margin: 10px 0 16px; padding: 9px 11px; border-left: 3px solid var(--c-story-heading,#1e293b); border-radius: 0 11px 11px 0; background: rgba(148,163,184,.06); display: flex; flex-direction: column; gap: 3px; }
         .story-auto-requirements-preview strong { font-size: calc(10.5px*var(--app-text-scale,1)); }
         .story-auto-requirements-preview span { color: var(--c-story-sub,#64748b); font-size: calc(9.5px*var(--app-text-scale,1)); line-height: 1.5; }
