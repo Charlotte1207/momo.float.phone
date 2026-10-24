@@ -654,7 +654,6 @@ export function StoryApp({ onClose }: StoryAppProps) {
       || loadPresets().find((item) => item.builtIn)
       || null;
   }, [activeCharacterId]);
-  const availablePresets = useMemo(() => loadPresets(), [activeCharacterId]);
   const floatingGroupChatCandidates = useMemo(() => activeGroup && !independentFloatingShell
     ? loadChatSessions().filter((item) => item.isGroup)
     : [], [activeGroup, floatingChatVersion, independentFloatingShell]);
@@ -2293,7 +2292,6 @@ export function StoryApp({ onClose }: StoryAppProps) {
           globalSettings={storyGlobalSettings}
           schemeRepo={schemeRepo}
           boundPreset={boundPreset}
-          availablePresets={availablePresets}
           foldTags={foldTagsDraft}
           contextExcludedTags={contextExcludedTagsDraft}
           customCSS={currentSession.customCSS || ""}

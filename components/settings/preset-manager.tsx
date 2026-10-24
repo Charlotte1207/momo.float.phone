@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useContext, useCallback, useMemo } from "react";
-import { Plus, Upload, Download, Trash2, RotateCcw, ChevronLeft, ChevronDown, GripVertical, MessageSquare, AlertCircle, Maximize2, Copy, Replace, CheckSquare, Check, Filter, MoreHorizontal } from "lucide-react";
+import { Plus, Upload, Download, Trash2, RotateCcw, ChevronLeft, ChevronDown, GripVertical, MessageSquare, AlertCircle, Maximize2, Copy, Replace, CheckSquare, Check, Combine, Filter, MoreHorizontal } from "lucide-react";
 import {
     loadPresets,
     savePresets,
@@ -300,6 +300,10 @@ export function PresetManager({ isActive = true }: { isActive?: boolean } = {}) 
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [selectionPresetId, setSelectionPresetId] = useState<string | null>(null);
     const [confirmDeleteSelected, setConfirmDeleteSelected] = useState(false);
+    const [stitchOpen, setStitchOpen] = useState(false);
+    const [stitchSourcePresetId, setStitchSourcePresetId] = useState("");
+    const [stitchSelectedIds, setStitchSelectedIds] = useState<Set<string>>(new Set());
+    const [stitchInsertAfter, setStitchInsertAfter] = useState("__end__");
 
     // ── 按 App 筛选（高亮/仅显示/仅折叠/同类折叠） ──
     const [appFilterOpen, setAppFilterOpen] = useState(false);
@@ -646,6 +650,74 @@ export function PresetManager({ isActive = true }: { isActive?: boolean } = {}) 
         setEditingId(copy.id);
         setViewMode("detail");
     }, [persist, presets]);
+
+    const openStitching = useCallback((targetPresetId: string) => {
+        const source = presets.find((preset) => preset.id !== targetPresetId);
+        setStitchSourcePresetId(source?.id || "");
+        setStitchSelectedIds(new Set());
+        setStitchInsertAfter("__end__");
+        setStitchOpen(true);
+    }, [presets]);
+
+    const toggleStitchPrompt = (promptIdentifier: string) => {
+        setStitchSelectedIds((previous) => {
+            const next = new Set(previous);
+            if (next.has(promptIdentifier)) next.delete(promptIdentifier);
+            else next.add(promptIdentifier);
+            return next;
+        });
+    };
+
+    const importStitchedPrompts = () => {
+        const target = presets.find((preset) => preset.id === editingId);
+        const source = presets.find((preset) => preset.id === stitchSourcePresetId);
+        if (!target || !source) {
+            window.alert("请选择要导入条目的来源预设。");
+            return;
+        }
+        if (!stitchSelectedIds.size) {
+            window.alert("请至少选择一个要导入的条目。");
+            return;
+        }
+        const usedIdentifiers = new Set(target.prompts.map((prompt) => prompt.identifier));
+        const importedPrompts: Prompt[] = [];
+        const importedOrder: PromptOrderEntry[] = [];
+        for (const original of buildDisplayedPrompts(source)) {
+            if (!stitchSelectedIds.has(original.identifier)) continue;
+            const sourceOrder = source.prompt_order?.find((item) => item.identifier === original.identifier);
+            if (original.marker && usedIdentifiers.has(original.identifier)) {
+                window.alert(`当前预设已经有标记条目“${original.name || original.identifier}”，不能重复导入。`);
+                return;
+            }
+            let identifier = original.identifier;
+            if (usedIdentifiers.has(identifier)) {
+                const suffix = source.id.replace(/[^a-zA-Z0-9_-]/g, "_");
+                identifier = `${identifier}__${suffix}`;
+                let counter = 2;
+                while (usedIdentifiers.has(identifier)) identifier = `${original.identifier}__${suffix}_${counter++}`;
+            }
+            usedIdentifiers.add(identifier);
+            importedPrompts.push({ ...JSON.parse(JSON.stringify(original)) as Prompt, identifier, system_prompt: false });
+            importedOrder.push({ identifier, enabled: sourceOrder?.enabled ?? original.enabled });
+        }
+
+        const baseOrder: PromptOrderEntry[] = target.prompt_order?.map((entry) => ({ ...entry }))
+            || target.prompts.map((prompt) => ({ identifier: prompt.identifier, enabled: prompt.enabled }));
+        for (const prompt of target.prompts) {
+            if (!baseOrder.some((entry) => entry.identifier === prompt.identifier)) {
+                baseOrder.push({ identifier: prompt.identifier, enabled: prompt.enabled });
+            }
+        }
+        const insertIndex = stitchInsertAfter === "__start__"
+            ? 0
+            : stitchInsertAfter === "__end__"
+                ? baseOrder.length
+                : Math.max(0, baseOrder.findIndex((entry) => entry.identifier === stitchInsertAfter) + 1);
+        const nextOrder = [...baseOrder];
+        nextOrder.splice(insertIndex, 0, ...importedOrder);
+        updatePreset(target.id, { prompts: [...target.prompts, ...importedPrompts], prompt_order: nextOrder });
+        setStitchOpen(false);
+    };
 
     useEffect(() => {
         if (viewMode !== "list") {
@@ -1140,7 +1212,16 @@ export function PresetManager({ isActive = true }: { isActive?: boolean } = {}) 
                         const enabledGenerationParameters = resolveEnabledGenerationParameters(preset);
                         return (
                             <div key={preset.id} className="flex flex-col gap-4 pb-[24px]">
-                                <div className="flex justify-center gap-2">
+                                <div className="flex flex-wrap justify-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => openStitching(preset.id)}
+                                        disabled={presets.length < 2}
+                                        className="inline-flex h-10 items-center justify-center gap-1.5 rounded-[20px] border border-black/10 bg-white px-4 text-xs font-bold text-gray-800 shadow-sm transition-all hover:bg-gray-50 hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+                                    >
+                                        <Combine size={15} strokeWidth={1.8} />
+                                        <span>缝合预设</span>
+                                    </button>
                                     <button
                                         type="button"
                                         onClick={() => duplicatePreset(preset)}
@@ -2094,6 +2175,70 @@ export function PresetManager({ isActive = true }: { isActive?: boolean } = {}) 
                     </div>
                 </BottomSheet>
             )}
+
+            {stitchOpen && editingId && (() => {
+                const target = presets.find((preset) => preset.id === editingId);
+                const sourceChoices = presets.filter((preset) => preset.id !== editingId);
+                const source = sourceChoices.find((preset) => preset.id === stitchSourcePresetId) || sourceChoices[0];
+                if (!target) return null;
+                const sourcePrompts = source ? buildDisplayedPrompts(source) : [];
+                const targetPrompts = buildDisplayedPrompts(target);
+                return (
+                    <BottomSheet title={`缝合到“${target.name}”`} onClose={() => setStitchOpen(false)}>
+                        <div className="flex max-h-[72vh] flex-col gap-4 overflow-y-auto pb-2">
+                            <label className="flex flex-col gap-2">
+                                <span className="menu-label ts-12">从其他预设导入</span>
+                                <select className="ui-select" value={source?.id || ""} onChange={(event) => {
+                                    setStitchSourcePresetId(event.target.value);
+                                    setStitchSelectedIds(new Set());
+                                }}>
+                                    {sourceChoices.map((preset) => <option key={preset.id} value={preset.id}>{preset.name}</option>)}
+                                </select>
+                            </label>
+
+                            <div className="flex flex-col gap-2">
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="menu-label ts-12">选择要导入的条目</span>
+                                    <span className="flex gap-2">
+                                        <button type="button" className="text-[11px] font-bold text-gray-600" onClick={() => setStitchSelectedIds(new Set(sourcePrompts.map((prompt) => prompt.identifier)))}>全选</button>
+                                        <button type="button" className="text-[11px] font-bold text-gray-400" onClick={() => setStitchSelectedIds(new Set())}>清空</button>
+                                    </span>
+                                </div>
+                                <div className="flex flex-col rounded-xl border border-black/10 bg-white px-2 py-2">
+                                    {sourcePrompts.map((prompt) => {
+                                        const checked = stitchSelectedIds.has(prompt.identifier);
+                                        const order = source?.prompt_order?.find((item) => item.identifier === prompt.identifier);
+                                        const enabled = order?.enabled ?? prompt.enabled;
+                                        return (
+                                            <label key={prompt.identifier} className="flex cursor-pointer items-start gap-2 rounded-lg px-2 py-2 hover:bg-black/[0.03]">
+                                                <input className="mt-0.5 accent-black" type="checkbox" checked={checked} onChange={() => toggleStitchPrompt(prompt.identifier)} />
+                                                <span className="min-w-0 flex-1">
+                                                    <span className="block truncate text-xs font-semibold text-gray-800">{prompt.name || prompt.identifier}</span>
+                                                    <span className="menu-desc ts-10 !mt-0">{prompt.marker ? "结构标记" : getPromptTagsInlineLabel(prompt)} · {enabled ? "导入后开启" : "导入后关闭"}</span>
+                                                </span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <label className="flex flex-col gap-2">
+                                <span className="menu-label ts-12">插入位置</span>
+                                <select className="ui-select" value={stitchInsertAfter} onChange={(event) => setStitchInsertAfter(event.target.value)}>
+                                    <option value="__start__">放在当前预设最前面</option>
+                                    {targetPrompts.map((prompt) => <option key={prompt.identifier} value={prompt.identifier}>放在“{prompt.name || prompt.identifier}”后面</option>)}
+                                    <option value="__end__">放在当前预设最后面</option>
+                                </select>
+                                <span className="menu-desc !mt-0">导入条目会保持它们在来源预设中的原有顺序。</span>
+                            </label>
+
+                            <button type="button" className="ui-btn ui-btn-primary w-full" onClick={importStitchedPrompts} disabled={!source || stitchSelectedIds.size === 0}>
+                                <Combine size={16} />导入所选 {stitchSelectedIds.size} 个条目
+                            </button>
+                        </div>
+                    </BottomSheet>
+                );
+            })()}
 
             {expandTarget && editingId && (() => {
                 const preset = presets.find(p => p.id === editingId);
