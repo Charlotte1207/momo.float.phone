@@ -3,11 +3,14 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import {
+  BookmarkIcon,
   BookOpenIcon,
+  CheckIcon,
   PaintBrushIcon,
   PaperAirplaneIcon,
   PlusIcon,
   StopIcon,
+  TrashIcon,
   XMarkIcon,
 } from "@heroicons/react/24/solid";
 
@@ -110,6 +113,7 @@ import { kvGet, kvSet, registerKvMigration } from "@/lib/kv-db";
 import { downloadFile } from "@/lib/download-utils";
 import { loadDeliveredShoppingGifts, type ShoppingGiftCandidate } from "@/lib/shopping-gift-utils";
 import { payWithWalletBalance } from "@/lib/wallet-storage";
+import { addStoryFavorite } from "@/lib/favorites-storage";
 import type { ChatMessage, ChatSession } from "@/lib/chat-storage";
 import type { MomentPost } from "@/lib/moments-types";
 import {
@@ -554,6 +558,8 @@ export function StoryApp({ onClose }: StoryAppProps) {
   const dragStartXRef = useRef<number | null>(null);
   const dragDeltaXRef = useRef(0);
   const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
+  const [storyMultiSelect, setStoryMultiSelect] = useState(false);
+  const [selectedStoryMessageIds, setSelectedStoryMessageIds] = useState<Set<string>>(() => new Set());
   const [instructionRetryTargetId, setInstructionRetryTargetId] = useState<string | null>(null);
   const [instructionRetryDraft, setInstructionRetryDraft] = useState("");
   const [contextMenuPoint, setContextMenuPoint] = useState<{ x: number; y: number } | null>(null);
@@ -765,6 +771,7 @@ export function StoryApp({ onClose }: StoryAppProps) {
   }, [floatingChatGenerating, floatingChatVersion, floatingPhoneOpen]);
 
   function activateStorySession(session: StorySession) {
+    cancelStoryMultiSelect();
     setActiveSessionId(session.id);
     activeSessionIdRef.current = session.id;
     setVisibleMessageCount(STORY_INITIAL_LOAD);
@@ -2024,6 +2031,46 @@ export function StoryApp({ onClose }: StoryAppProps) {
     setActiveMessageId(null);
     setStorageVersion(v => v + 1);
   }
+  function cancelStoryMultiSelect() {
+    setStoryMultiSelect(false);
+    setSelectedStoryMessageIds(new Set());
+  }
+  function startStoryMultiSelect(messageId: string) {
+    setActiveMessageId(null);
+    setStoryMultiSelect(true);
+    setSelectedStoryMessageIds(new Set([messageId]));
+  }
+  function toggleStoryMultiSelect(messageId: string) {
+    setSelectedStoryMessageIds(previous => {
+      const next = new Set(previous);
+      if (next.has(messageId)) next.delete(messageId);
+      else next.add(messageId);
+      return next;
+    });
+  }
+  async function favoriteStoryMessages(messageIds: string[]) {
+    if (!currentSession) return;
+    const targets = new Set(messageIds);
+    const storedMessages = loadStoryMessages(currentSession.id).filter(message => targets.has(message.id));
+    if (!storedMessages.length) {
+      showVoiceNotice("没有找到可收藏的剧情消息");
+      return;
+    }
+    try {
+      await addStoryFavorite({ session: currentSession, messages: storedMessages, group: activeGroup });
+      showVoiceNotice(storedMessages.length > 1 ? `已收藏 ${storedMessages.length} 条剧情消息` : "已收藏");
+    } catch (error) {
+      showVoiceNotice(error instanceof Error ? error.message : "收藏失败");
+    }
+  }
+  function deleteSelectedStoryMessages() {
+    const ids = Array.from(selectedStoryMessageIds);
+    for (const id of ids) deleteStoryMessage(id);
+    setMessages(previous => previous.filter(message => !selectedStoryMessageIds.has(message.id)));
+    setStorageVersion(version => version + 1);
+    cancelStoryMultiSelect();
+    showVoiceNotice(`已删除 ${ids.length} 条剧情消息`);
+  }
   function handleStoryEditStart(msg: StoryMessage) {
     setEditingMessageId(msg.id);
     setEditingContent(msg.rawContent); // 仅作为非受控 textarea 的初始值
@@ -2365,6 +2412,7 @@ export function StoryApp({ onClose }: StoryAppProps) {
                   </button>
                 ) : null}
                 {visibleMessages.map((message) => {
+                  const storyMessageSelected = selectedStoryMessageIds.has(message.id);
                   const speakerName = message.role === "user"
                     ? (userIdentity?.name?.trim() || "我")
                     : message.role === "assistant"
@@ -2380,17 +2428,25 @@ export function StoryApp({ onClose }: StoryAppProps) {
                       key={message.id}
                       className="story-row"
                       data-role={message.role}
+                      data-selected={storyMessageSelected ? "1" : "0"}
                       data-story-message-id={message.id}
-                      onPointerDown={(e) => handleMsgPointerDown(e, message.id)}
-                      onPointerMove={handleMsgPointerMove}
-                      onPointerUp={handleMsgPointerUp}
-                      onPointerCancel={handleMsgPointerCancel}
+                      onClick={storyMultiSelect ? (e) => { e.preventDefault(); e.stopPropagation(); toggleStoryMultiSelect(message.id); } : undefined}
+                      onPointerDown={storyMultiSelect ? undefined : (e) => handleMsgPointerDown(e, message.id)}
+                      onPointerMove={storyMultiSelect ? undefined : handleMsgPointerMove}
+                      onPointerUp={storyMultiSelect ? undefined : handleMsgPointerUp}
+                      onPointerCancel={storyMultiSelect ? undefined : handleMsgPointerCancel}
                       onContextMenu={(e) => {
                         e.preventDefault();
+                        if (storyMultiSelect) { toggleStoryMultiSelect(message.id); return; }
                         setContextMenuPoint(getClampedContextMenuPoint(e.clientX, e.clientY));
                         setActiveMessageId(message.id);
                       }}
                     >
+                      {storyMultiSelect ? (
+                        <span className="story-multi-select-check" data-selected={storyMessageSelected ? "1" : "0"}>
+                          {storyMessageSelected ? <CheckIcon width={13} height={13} /> : null}
+                        </span>
+                      ) : null}
                       {message.role !== "system" ? (
                         <div className="story-msg-head">
                           <div className="story-avatar-wrap">
@@ -2458,6 +2514,8 @@ export function StoryApp({ onClose }: StoryAppProps) {
                                 )}
                               </div>
                               <div style={{ display: "flex" }}>
+                                <button onClick={() => { setActiveMessageId(null); void favoriteStoryMessages([message.id]); }} className="story-ctx-btn">收藏</button>
+                                <button onClick={() => startStoryMultiSelect(message.id)} className="story-ctx-btn">多选</button>
                                 <button onClick={() => handleStoryDelete(message.id)} className="story-ctx-btn story-ctx-btn-danger">删除</button>
                                 <button onClick={() => handleStoryDeleteFrom(message.id)} className="story-ctx-btn story-ctx-btn-danger">删除以下</button>
                               </div>
@@ -2495,7 +2553,27 @@ export function StoryApp({ onClose }: StoryAppProps) {
         <div className="story-voice-notice" role="status">{voiceNotice}</div>
       ) : null}
 
-      <StoryComposer
+      {storyMultiSelect ? (
+        <div className="story-multi-select-bar">
+          <button type="button" className="story-multi-select-icon" onClick={cancelStoryMultiSelect} aria-label="退出多选">
+            <XMarkIcon width={20} height={20} />
+          </button>
+          <strong>已选 {selectedStoryMessageIds.size} 条</strong>
+          <button
+            type="button"
+            disabled={selectedStoryMessageIds.size === 0}
+            onClick={async () => {
+              await favoriteStoryMessages(Array.from(selectedStoryMessageIds));
+              cancelStoryMultiSelect();
+            }}
+          >
+            <BookmarkIcon width={17} height={17} />收藏
+          </button>
+          <button type="button" className="is-danger" disabled={selectedStoryMessageIds.size === 0} onClick={deleteSelectedStoryMessages}>
+            <TrashIcon width={17} height={17} />删除
+          </button>
+        </div>
+      ) : <StoryComposer
         isGenerating={isGenerating}
         appendRequest={composerAppendRequest}
         voiceEnabled={Boolean(uiPrefs.voiceEnabled)}
@@ -2520,7 +2598,7 @@ export function StoryApp({ onClose }: StoryAppProps) {
         quickInputEnabled={Boolean(uiPrefs.quickInputEnabled)}
         quickInputOptions={quickInputOptions}
         quickInputCursor={quickInputCursor}
-      />
+      />}
 
       {storySettings.floatingPhoneEnabled ? (
         <button className="story-floating-phone-ball" type="button" onClick={() => { setFloatingChatVersion((value) => value + 1); setFloatingPhoneTab("chat"); setFloatingPlusOpen(false); setFloatingPhoneOpen(true); }} aria-label="打开悬浮小手机"><MiniPhoneIcon size={18} /></button>
