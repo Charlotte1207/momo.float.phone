@@ -1698,6 +1698,16 @@
         .story-directory-batch-bar span { min-width:120px; flex:1; color:var(--c-story-sub,#64748b); font-size:calc(10px*var(--app-text-scale,1)); }
         .story-directory-batch-bar button:last-child { background:var(--c-story-heading,#303236); color:#fff; }
         .story-directory-batch-bar button:disabled { opacity:.38; }
+        .story-directory-search { min-height:40px; margin:0 0 12px; padding:0 11px; display:flex; align-items:center; gap:8px; border:1px solid rgba(100,116,139,.11); border-radius:12px; color:var(--c-story-sub,#64748b); background:rgba(148,163,184,.07); }
+        .story-directory-search input { min-width:0; flex:1; border:0; outline:0; color:var(--c-story-text,#334155); background:transparent; font:500 calc(11px*var(--app-text-scale,1))/1 var(--story-font); }
+        .story-directory-search button { width:28px; height:28px; padding:0; border:0; display:grid; place-items:center; color:inherit; background:transparent; }
+        .story-directory-groups { display:grid; gap:10px; }
+        .story-directory-group { overflow:hidden; border:1px solid rgba(100,116,139,.08); border-radius:14px; background:color-mix(in srgb,var(--c-story-card,#fff) 72%,transparent); }
+        .story-directory-group > header,.story-directory-group-toggle { width:100%; min-height:42px; padding:0 11px; border:0; display:flex; align-items:center; gap:7px; color:var(--c-story-heading,#1e293b); background:rgba(148,163,184,.055); text-align:left; }
+        .story-directory-group > header strong,.story-directory-group-toggle strong { flex:1; font:650 calc(11px*var(--app-text-scale,1))/1 var(--story-font); }
+        .story-directory-group > header span,.story-directory-group-toggle span { min-width:22px; height:22px; padding:0 6px; border-radius:999px; display:grid; place-items:center; color:var(--c-story-sub,#64748b); background:rgba(148,163,184,.12); font-size:calc(9px*var(--app-text-scale,1)); }
+        .story-directory-group .story-directory-list { padding:0 9px 3px; }
+        .story-directory-empty { margin:0; padding:18px 8px; color:var(--c-story-sub,#94a3b8); text-align:center; font-size:calc(10px*var(--app-text-scale,1)); }
         .story-directory-list { display:flex; flex-direction:column; }
         .story-directory-row { display:grid; grid-template-columns:25px minmax(0,1fr) auto; align-items:center; min-height:68px; border-top:1px solid rgba(100,116,139,.07); }
         .story-directory-row[data-batch="false"] { grid-template-columns:minmax(0,1fr) auto; }

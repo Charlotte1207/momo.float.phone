@@ -870,7 +870,7 @@ export type MergeStoryBranchesResult = {
 };
 
 /**
- * 将允许继承记忆、或已显式写入记忆的分线按原始时间并入主线。
+ * 将用户选择的普通分线按原始时间并入主线。
  * 来源分线保留在目录中，但标记为已合并；其投影随后不再重复注入。
  */
 export function mergeStoryBranchesIntoMain(ownerType: StoryOwnerType, ownerId: string, sourceSessionIds: string[]): MergeStoryBranchesResult {
@@ -879,7 +879,7 @@ export function mergeStoryBranchesIntoMain(ownerType: StoryOwnerType, ownerId: s
   if (!main) return { mergedSessionIds: [], skippedSessionIds: sourceSessionIds, copiedMessageCount: 0 };
   const requested = new Set(sourceSessionIds);
   const sources = sessions.filter((session) => requested.has(session.id) && (session.branchId || "main") !== "main");
-  const eligible = sources.filter((session) => !session.mergedIntoMainAt && (session.inheritRecentMemory || Boolean(session.includedInMemoryAt)));
+  const eligible = sources.filter((session) => !session.independentStory && !session.mergedIntoMainAt);
   const skippedSessionIds = sources.filter((session) => !eligible.includes(session)).map((session) => session.id);
   const existing = loadStoryMessages(main.id);
   const copied = eligible.flatMap((source) => loadStoryMessages(source.id).map((message) => ({

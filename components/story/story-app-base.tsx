@@ -1469,14 +1469,15 @@ export function StoryApp({ onClose }: StoryAppProps) {
       .catch((error) => alert(error instanceof Error ? error.message : "导出失败"));
   }
 
-  function handleMergeStoryBranches(sessionIds: string[]) {
+  function handleMergeStoryBranches(sessionIds: string[], deleteSources: boolean) {
     const result = mergeStoryBranchesIntoMain(activeOwnerType, activeOwnerId, sessionIds);
     if (!result.mergedSessionIds.length) {
-      alert("所选分线都不符合合并条件：只有已继承记忆，或已经结束并写入记忆的分线可以合并。");
+      alert("所选分线没有可合并的内容；独立剧情和已经合并过的分线不会重复并入主线。");
       return;
     }
+    if (deleteSources) deleteStorySessions(result.mergedSessionIds);
     setStorageVersion((value) => value + 1);
-    alert(`已合并 ${result.mergedSessionIds.length} 条分线、${result.copiedMessageCount} 条剧情消息${result.skippedSessionIds.length ? `；跳过 ${result.skippedSessionIds.length} 条不符合条件的分线` : ""}。`);
+    alert(`已合并 ${result.mergedSessionIds.length} 条分线、${result.copiedMessageCount} 条剧情消息${deleteSources ? "，原分线已删除" : ""}${result.skippedSessionIds.length ? `；跳过 ${result.skippedSessionIds.length} 条不可合并的剧情` : ""}。`);
   }
 
   function handleQuickStoryCreate() {
