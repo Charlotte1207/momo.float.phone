@@ -5,6 +5,7 @@ import {
   Bookmark,
   Check,
   ChevronLeft,
+  ChevronRight,
   Filter,
   Image as ImageIcon,
   MessageCircle,
@@ -108,16 +109,96 @@ function FavoriteImage({ entry }: { entry: FavoriteEntry }) {
   return <img className="favorites-entry-image" src={src} alt={entry.imageDescription || "收藏图片"} />;
 }
 
-function FavoriteEntryView({ entry, compact = false }: { entry: FavoriteEntry; compact?: boolean }) {
+function useFavoriteMediaUrl(rawUrl?: string): string | null {
+  const [src, setSrc] = useState<string | null>(() => {
+    const raw = rawUrl || "";
+    return raw.startsWith("data:") || raw.startsWith("http") || raw.startsWith("blob:") ? raw : null;
+  });
+
+  useEffect(() => {
+    const raw = rawUrl || "";
+    if (!raw) {
+      setSrc(null);
+      return;
+    }
+    if (raw.startsWith("data:") || raw.startsWith("http") || raw.startsWith("blob:")) {
+      setSrc(raw);
+      return;
+    }
+    if (!isMediaStoreRef(raw)) {
+      setSrc(null);
+      return;
+    }
+    let cancelled = false;
+    let objectUrl: string | null = null;
+    void loadMediaObjectUrl(raw).then(value => {
+      if (!value) return;
+      if (cancelled) {
+        URL.revokeObjectURL(value);
+        return;
+      }
+      objectUrl = value;
+      setSrc(value);
+    });
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [rawUrl]);
+
+  return src;
+}
+
+function FavoriteAudio({ entry }: { entry: FavoriteEntry }) {
+  const src = useFavoriteMediaUrl(entry.mediaUrl);
+  const label = typeof entry.mediaData?.label === "string" ? entry.mediaData.label.trim() : "";
+  const duration = typeof entry.mediaData?.voiceDuration === "number" ? entry.mediaData.voiceDuration : null;
+
+  return (
+    <div className="favorites-entry-audio" onClick={event => event.stopPropagation()} onPointerDown={event => event.stopPropagation()}>
+      {src ? <audio controls preload="metadata" src={src}>当前浏览器无法播放这条语音。</audio> : <span>原语音文件已不可用</span>}
+      <small>{label || entry.content || "语音消息"}{duration ? ` · ${Math.ceil(duration)} 秒` : ""}</small>
+    </div>
+  );
+}
+
+function splitThinkingContent(content: string): { visible: string; thoughts: string[] } {
+  const thoughts: string[] = [];
+  const visible = content
+    .replace(/<(think|thinking)\b[^>]*>([\s\S]*?)<\/\1>/gi, (_match, _tag: string, body: string) => {
+      const thought = body.trim();
+      if (thought) thoughts.push(thought);
+      return "\n";
+    })
+    .replace(/<(think|thinking)\b[^>]*>([\s\S]*)$/gi, (_match, _tag: string, body: string) => {
+      const thought = body.trim();
+      if (thought) thoughts.push(thought);
+      return "\n";
+    })
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return { visible, thoughts };
+}
+
+function FavoriteEntryView({ entry, compact = false, foldThinking = false }: { entry: FavoriteEntry; compact?: boolean; foldThinking?: boolean }) {
+  const parsed = foldThinking ? splitThinkingContent(entry.content) : { visible: entry.content, thoughts: [] };
   return (
     <div className="favorites-entry" data-role={entry.role}>
       <div className="favorites-entry-meta">
         <strong>{entry.senderName}</strong>
         <span>{formatDate(entry.createdAt)}</span>
       </div>
-      {entry.content && <p className={compact ? "favorites-entry-text is-compact" : "favorites-entry-text"}>{entry.content}</p>}
-      {(entry.mediaType === "image" || entry.mediaUrl) && <FavoriteImage entry={entry} />}
-      {entry.mediaType === "audio" && <span className="favorites-media-note">语音 · {entry.imageDescription || entry.content || "原始语音消息"}</span>}
+      {parsed.visible && <p className={compact ? "favorites-entry-text is-compact" : "favorites-entry-text"}>{parsed.visible}</p>}
+      {entry.mediaType === "image" && <FavoriteImage entry={entry} />}
+      {entry.mediaType === "audio" && <FavoriteAudio entry={entry} />}
+      {parsed.thoughts.length > 0 && (compact ? (
+        <div className="favorites-thinking-compact">思考内容已折叠</div>
+      ) : (
+        <details className="favorites-thinking">
+          <summary><span>思考内容</span><ChevronRight size={14} /></summary>
+          <div>{parsed.thoughts.map((thought, index) => <p key={index}>{thought}</p>)}</div>
+        </details>
+      ))}
     </div>
   );
 }
@@ -341,7 +422,7 @@ export function FavoritesApp({ onClose }: { onClose: () => void }) {
                   {selected && <span className="favorites-card-check"><Check size={13} /></span>}
                   <header><div><strong>{item.title}</strong><small>{item.containerName}</small></div><time>{formatDate(item.sourceCreatedAt)}</time></header>
                   <div className="favorites-card-entries">
-                    {previewEntries.map(entry => <FavoriteEntryView key={entry.id} entry={entry} compact />)}
+                    {previewEntries.map(entry => <FavoriteEntryView key={entry.id} entry={entry} compact foldThinking={item.category === "story"} />)}
                   </div>
                   {item.entries.length > previewEntries.length && <button className="favorites-expand-note" type="button">展开全部 {item.entries.length} 条</button>}
                   <footer>{item.tags.map(tag => <span key={tag}>{tag}</span>)}</footer>
@@ -367,7 +448,7 @@ export function FavoritesApp({ onClose }: { onClose: () => void }) {
             </header>
             <div className="favorites-detail-tags">{detailItem.tags.map(tag => <span key={tag}>{tag}</span>)}</div>
             <div className="favorites-detail-body">
-              {detailItem.entries.map(entry => <FavoriteEntryView key={entry.id} entry={entry} />)}
+              {detailItem.entries.map(entry => <FavoriteEntryView key={entry.id} entry={entry} foldThinking={detailItem.category === "story"} />)}
             </div>
             <footer>
               <span>收藏于 {formatDate(detailItem.createdAt)}</span>

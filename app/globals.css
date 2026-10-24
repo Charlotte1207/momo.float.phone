@@ -115,6 +115,17 @@
 .favorites-entry-image { display: block; width: min(100%, 320px); max-height: 320px; margin-top: 8px; object-fit: contain; border-radius: 10px; background: rgba(0,0,0,.04); }
 .favorites-image-description { margin: 7px 0 0; font-size: calc(10px*var(--app-text-scale,1)); color: var(--c-icon, #7e8796); font-style: italic; }
 .favorites-media-note { display: block; margin-top: 7px; font-size: calc(10px*var(--app-text-scale,1)); color: var(--c-icon, #7e8796); }
+.favorites-entry-audio { margin-top: 8px; display: grid; gap: 5px; }
+.favorites-entry-audio audio { display: block; width: 100%; height: 36px; color-scheme: light; }
+.favorites-entry-audio span, .favorites-entry-audio small { color: var(--c-icon, #7e8796); font-size: calc(10px*var(--app-text-scale,1)); }
+.favorites-thinking-compact { margin-top: 7px; padding: 6px 9px; border-radius: 9px; color: var(--c-icon, #7e8796); background: color-mix(in srgb, var(--c-icon, #7e8796) 8%, transparent); font-size: calc(10px*var(--app-text-scale,1)); }
+.favorites-thinking { margin-top: 8px; border: 1px solid var(--c-card-border, rgba(20,30,45,.07)); border-radius: 10px; overflow: hidden; background: color-mix(in srgb, var(--c-input, #eef1f5) 72%, transparent); }
+.favorites-thinking summary { min-height: 34px; padding: 0 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; list-style: none; color: var(--c-icon, #778195); font-size: calc(10px*var(--app-text-scale,1)); }
+.favorites-thinking summary::-webkit-details-marker { display: none; }
+.favorites-thinking summary svg { transition: transform .18s ease; }
+.favorites-thinking[open] summary svg { transform: rotate(90deg); }
+.favorites-thinking > div { padding: 0 10px 9px; border-top: 1px solid var(--c-card-border, rgba(20,30,45,.06)); }
+.favorites-thinking p { margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--c-text, #536071); font-size: calc(11px*var(--app-text-scale,1)); line-height: 1.6; user-select: text; }
 .favorites-expand-note { width: 100%; margin-top: 8px; border: 0; background: transparent; color: #a87b24; font-size: calc(10px*var(--app-text-scale,1)); }
 .favorites-card > footer { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 10px; }
 .favorites-empty { min-height: 46vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--c-icon, #8b94a3); text-align: center; }
