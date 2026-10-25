@@ -278,6 +278,8 @@ export function ImageGenerationSettings() {
         return {
             apiKey: nai?.apiKey || "",
             requestMode: nai?.requestMode || settings.requestMode,
+            customUrlEnabled: nai?.customUrlEnabled === true,
+            customUrl: nai?.customUrl || "",
             activePresetId: activePreset.id,
             presets,
             activePreset,
@@ -290,6 +292,8 @@ export function ImageGenerationSettings() {
             novelai: {
                 apiKey: naiSettings.apiKey,
                 requestMode: naiSettings.requestMode,
+                customUrlEnabled: naiSettings.customUrlEnabled,
+                customUrl: naiSettings.customUrl,
                 activePresetId: naiSettings.activePresetId,
                 presets: naiSettings.presets,
                 ...patch,
@@ -684,6 +688,32 @@ export function ImageGenerationSettings() {
                                     </Alert>
                                 </div>
                             )}
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                            <label className="menu-desc ml-1">接口地址</label>
+                            <Select
+                                value={naiSettings.customUrlEnabled ? "custom" : "official"}
+                                onChange={(event) => {
+                                    updateNovelAi({ customUrlEnabled: event.target.value === "custom" });
+                                    setNaiTokenStatus(null);
+                                }}
+                            >
+                                <option value="official">NovelAI 官方地址</option>
+                                <option value="custom">自定义 URL</option>
+                            </Select>
+                            {naiSettings.customUrlEnabled && (
+                                <Input
+                                    type="url"
+                                    value={naiSettings.customUrl}
+                                    onChange={(event) => {
+                                        updateNovelAi({ customUrl: event.target.value });
+                                        setNaiTokenStatus(null);
+                                    }}
+                                    placeholder="https://example.com/ai/generate-image"
+                                />
+                            )}
+                            <span className="menu-desc ml-1">自定义 URL 需兼容 NovelAI 生图请求格式；分辨率、采样器、CFG、正负提示词及质量设置继续共用下方当前预设。</span>
                         </div>
 
                         {/* 预设管理栏 */}

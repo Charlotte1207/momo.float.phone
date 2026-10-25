@@ -46,6 +46,8 @@ export type ChatSession = {
     unreadCount: number;
     updatedAt: string; // ISO date
     isPinned: boolean;
+    /** 允许该私聊角色在强烈希望见面时自主创建并进入线下剧情分线。默认关闭。 */
+    allowForcedOfflineStory?: boolean;
     backgroundImage?: string; // Add support for custom background
     /** 仅当前私聊里展示的用户头像；不修改用户身份、主页或其他会话 */
     userAvatarOverride?: string;

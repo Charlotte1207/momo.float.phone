@@ -587,16 +587,17 @@ async function generateImageViaServer(params: {
 
 async function generateNovelAiDirect(params: {
   apiKey: string;
+  customUrl?: string;
   preset: NovelAiPreset;
   prompt: string;
   signal?: AbortSignal;
 }): Promise<ImageGenerationApiResponse> {
-  const { apiKey, preset, prompt, signal } = params;
+  const { apiKey, customUrl, preset, prompt, signal } = params;
   throwIfAborted(signal);
 
   const { width, height } = getNovelAiResolution(preset.resolution);
 
-  const url = "https://image.novelai.net/ai/generate-image";
+  const url = customUrl?.trim() || "https://image.novelai.net/ai/generate-image";
   const headers: Record<string, string> = {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json",
@@ -675,11 +676,12 @@ async function generateNovelAiDirect(params: {
 
 async function generateNovelAiViaServer(params: {
   apiKey: string;
+  customUrl?: string;
   preset: NovelAiPreset;
   prompt: string;
   signal?: AbortSignal;
 }): Promise<ImageGenerationApiResponse> {
-  const { apiKey, preset, prompt, signal } = params;
+  const { apiKey, customUrl, preset, prompt, signal } = params;
   throwIfAborted(signal);
 
   const controller = new AbortController();
@@ -696,6 +698,7 @@ async function generateNovelAiViaServer(params: {
       body: JSON.stringify({
         provider: "novelai",
         apiKey,
+        baseUrl: customUrl?.trim() || undefined,
         model: normalizeNovelAiModel(preset.model),
         prompt,
         size: resolution.value,
@@ -852,9 +855,15 @@ export async function generateImageFromConfiguredApi(params: {
     const fullPrompt = positiveParts.join(", ");
 
     const novelAiRequestMode = settings.novelai?.requestMode || settings.requestMode;
+    const novelAiCustomUrl = settings.novelai?.customUrlEnabled
+      ? settings.novelai.customUrl?.trim()
+      : undefined;
+    if (settings.novelai?.customUrlEnabled && !novelAiCustomUrl) {
+      throw new Error("请填写 NovelAI 自定义 URL。");
+    }
     const data = novelAiRequestMode === "direct"
-      ? await generateNovelAiDirect({ apiKey: naiApiKey, preset: activePreset, prompt: fullPrompt, signal: params.signal })
-      : await generateNovelAiViaServer({ apiKey: naiApiKey, preset: activePreset, prompt: fullPrompt, signal: params.signal });
+      ? await generateNovelAiDirect({ apiKey: naiApiKey, customUrl: novelAiCustomUrl, preset: activePreset, prompt: fullPrompt, signal: params.signal })
+      : await generateNovelAiViaServer({ apiKey: naiApiKey, customUrl: novelAiCustomUrl, preset: activePreset, prompt: fullPrompt, signal: params.signal });
 
     throwIfAborted(params.signal);
     const mimeType = data.mimeType || "image/png";

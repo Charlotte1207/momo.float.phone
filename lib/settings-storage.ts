@@ -718,6 +718,8 @@ export const DEFAULT_IMAGE_GENERATION_SETTINGS: ImageGenerationSettings = {
     novelai: {
         apiKey: "",
         requestMode: "direct",
+        customUrlEnabled: false,
+        customUrl: "",
         activePresetId: DEFAULT_NOVELAI_PRESET.id,
         presets: [DEFAULT_NOVELAI_PRESET],
     },
@@ -878,6 +880,8 @@ function normalizeImageGenerationSettings(settings: Partial<ImageGenerationSetti
         requestMode: rawNai?.requestMode === "server" || rawNai?.requestMode === "direct"
             ? rawNai.requestMode
             : requestMode,
+        customUrlEnabled: rawNai?.customUrlEnabled === true,
+        customUrl: typeof rawNai?.customUrl === "string" ? rawNai.customUrl.trim() : "",
         activePresetId,
         presets: naiPresets,
     };

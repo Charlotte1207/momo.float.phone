@@ -233,6 +233,9 @@ export type NovelAiPreset = {
 export type NovelAiSettings = {
     apiKey: string;
     requestMode?: ImageGenerationRequestMode;
+    /** 关闭时使用 NovelAI 官方生图地址；开启时直接请求 customUrl。 */
+    customUrlEnabled?: boolean;
+    customUrl?: string;
     activePresetId: string;
     presets: NovelAiPreset[];
 };
