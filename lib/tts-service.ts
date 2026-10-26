@@ -12,10 +12,16 @@ export type VoiceApiConfigResolved = VoiceApiConfig;
 export function resolveVoiceConfig(characterId: string, appId?: ContentAppId): VoiceApiConfig | null {
     const bindings = loadBindingConfig();
     const slot = resolveBinding(bindings, characterId, appId ?? "chat");
-    if (!slot.voiceConfigId) return null;
-
     const configs = loadVoiceConfigs();
-    return configs.find(c => c.id === slot.voiceConfigId) || null;
+    if (slot.voiceConfigId) {
+        const bound = configs.find(c => c.id === slot.voiceConfigId);
+        return bound?.enableTTS === false ? null : bound || null;
+    }
+
+    // 只有一个启用的方案时自动兜底，避免“设置页试听成功、聊天却提示未绑定”。
+    // 多个方案仍要求用户显式绑定，防止角色误用其他人的音色。
+    const enabledConfigs = configs.filter(config => config.enableTTS !== false);
+    return enabledConfigs.length === 1 ? enabledConfigs[0] : null;
 }
 
 /**

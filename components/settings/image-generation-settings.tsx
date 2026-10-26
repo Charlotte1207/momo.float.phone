@@ -24,6 +24,7 @@ import { Alert } from "@/components/ui/feedback";
 import { Input, Select, Textarea, Toggle } from "@/components/ui/form";
 import { ConfirmDialog, ContentDialog } from "@/components/ui/modal";
 import {
+    getNovelAiResolution,
     NOVELAI_COMMON_MODELS,
     NOVELAI_NOISE_SCHEDULE_OPTIONS,
     NOVELAI_RESOLUTION_OPTIONS,
@@ -818,10 +819,57 @@ export function ImageGenerationSettings() {
                                 value={naiSettings.activePreset.resolution}
                                 onChange={(event) => updateActivePreset({ resolution: event.target.value })}
                             >
+                                {!NOVELAI_RESOLUTION_OPTIONS.some(opt => opt.value === naiSettings.activePreset.resolution) && (
+                                    <option value={naiSettings.activePreset.resolution}>
+                                        {naiSettings.activePreset.resolution}（自定义）
+                                    </option>
+                                )}
                                 {NOVELAI_RESOLUTION_OPTIONS.map(opt => (
                                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                                 ))}
                             </Select>
+                            {naiSettings.customUrlEnabled && (() => {
+                                const current = getNovelAiResolution(naiSettings.activePreset.resolution);
+                                const updateDimension = (field: "width" | "height", rawValue: string) => {
+                                    const parsed = Number.parseInt(rawValue, 10);
+                                    if (!Number.isFinite(parsed)) return;
+                                    const value = Math.max(64, Math.min(4096, parsed));
+                                    const width = field === "width" ? value : current.width;
+                                    const height = field === "height" ? value : current.height;
+                                    updateActivePreset({ resolution: `${width}x${height}` });
+                                };
+                                return (
+                                    <div className="mt-2 grid grid-cols-2 gap-3 rounded-xl border border-[var(--c-card-border)] bg-[var(--c-input)]/35 p-3">
+                                        <div className="flex flex-col gap-1">
+                                            <label className="menu-desc ml-1">自定义宽度</label>
+                                            <Input
+                                                key={`nai-width-${current.width}`}
+                                                type="number"
+                                                min={64}
+                                                max={4096}
+                                                step={64}
+                                                defaultValue={current.width}
+                                                onBlur={(event) => updateDimension("width", event.target.value)}
+                                                onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }}
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            <label className="menu-desc ml-1">自定义高度</label>
+                                            <Input
+                                                key={`nai-height-${current.height}`}
+                                                type="number"
+                                                min={64}
+                                                max={4096}
+                                                step={64}
+                                                defaultValue={current.height}
+                                                onBlur={(event) => updateDimension("height", event.target.value)}
+                                                onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }}
+                                            />
+                                        </div>
+                                        <span className="menu-desc col-span-2 ml-1">自定义 URL 模式会按这里填写的宽高原样发送；建议使用 64 的倍数。</span>
+                                    </div>
+                                );
+                            })()}
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">

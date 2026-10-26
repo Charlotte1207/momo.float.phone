@@ -2398,7 +2398,7 @@ function synthesizeVoiceForMessage(msgId: string, characterId: string, speechTex
 function VoiceMessageBubble({ msg, characterId, onUpdate, defaultTranslationExpanded = false }: { msg: ChatMessage; characterId?: string; onUpdate?: (m: ChatMessage) => void; defaultTranslationExpanded?: boolean }) {
     const [playing, setPlaying] = useState(false);
     const [synthesizing, setSynthesizing] = useState(false);
-    const [synthFailed, setSynthFailed] = useState(false);
+    const [synthError, setSynthError] = useState<string | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const mountedRef = useRef(true);
     useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
@@ -2446,7 +2446,7 @@ function VoiceMessageBubble({ msg, characterId, onUpdate, defaultTranslationExpa
             return;
         }
         setSynthesizing(true);
-        setSynthFailed(false);
+        setSynthError(null);
         synthesizeVoiceForMessage(msg.id, characterId, speechText)
             .then((dataUrl) => {
                 if (onUpdate) onUpdate({ ...msg, mediaUrl: dataUrl, mediaData: { ...msg.mediaData, synthesizedFromText: speechText } });
@@ -2454,10 +2454,12 @@ function VoiceMessageBubble({ msg, characterId, onUpdate, defaultTranslationExpa
                 setSynthesizing(false);
                 playSrc(dataUrl);
             })
-            .catch(() => {
+            .catch((error: unknown) => {
                 if (!mountedRef.current) return;
                 setSynthesizing(false);
-                setSynthFailed(true);
+                const message = error instanceof Error ? error.message : String(error);
+                setSynthError(message);
+                window.alert(`语音合成失败：${message}`);
             });
     };
 
@@ -2472,7 +2474,7 @@ function VoiceMessageBubble({ msg, characterId, onUpdate, defaultTranslationExpa
     });
 
     return (
-        <div className="voice-msg-bubble" onClick={handlePlay}
+        <div className="voice-msg-bubble" onClick={handlePlay} title={synthError || undefined}
             style={{ minWidth: `${Math.min(60 + duration * 8, 220)}px` }}
         >
             <div className="voice-msg-icon-shell">
@@ -2495,7 +2497,7 @@ function VoiceMessageBubble({ msg, characterId, onUpdate, defaultTranslationExpa
                     />
                 ))}
             </div>
-            <span className="voice-msg-dur">{synthFailed ? "合成失败·点击重试" : `${duration}"`}</span>
+            <span className="voice-msg-dur">{synthError ? "合成失败·点击重试" : `${duration}"`}</span>
         </div>
     );
 }

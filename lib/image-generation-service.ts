@@ -837,8 +837,9 @@ export async function generateImageFromConfiguredApi(params: {
       : [DEFAULT_NOVELAI_PRESET];
     const activePreset = presets.find(p => p.id === settings.novelai?.activePresetId) || presets[0];
 
-    const positiveParts: string[] = [];
-    if (activePreset.positivePrompt?.trim()) positiveParts.push(activePreset.positivePrompt.trim());
+    // 本轮画面描述必须排在最前面。NovelAI 对提示词顺序较敏感；此前把预设、
+    // 人物外观和锚点放在描述前面，长提示词下会让聊天/朋友圈的当前场景失去权重。
+    const positiveParts: string[] = [description];
     const novelAiCharacterReference = params.characterId
       ? settings.characterReferences?.[params.characterId]
       : undefined;
@@ -851,7 +852,7 @@ export async function generateImageFromConfiguredApi(params: {
       .map(anchor => `${anchor.name}: ${anchor.description.trim()}`)
       .join(", ");
     if (anchorPrompt) positiveParts.push(anchorPrompt);
-    if (description) positiveParts.push(description);
+    if (activePreset.positivePrompt?.trim()) positiveParts.push(activePreset.positivePrompt.trim());
     const fullPrompt = positiveParts.join(", ");
 
     const novelAiRequestMode = settings.novelai?.requestMode || settings.requestMode;
